@@ -2,7 +2,7 @@
 import { Sequelize } from "sequelize";
 
 
-const sequelize =  new Sequelize(process.env.DB_NAME, "root", "8083571820",{
+const sequelize =  new Sequelize("groupchat", "root", "8083571820",{
     host:"localhost",
     dialect:"mysql"
 });

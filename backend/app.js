@@ -1,12 +1,20 @@
 import express from 'express'
 import db from './utils/db-connection.js'
+import authRoutes from './routes/authRoutes.js'
 
 const app = express()
 
 const PORT = process.env.PORT || 5000
 
+app.use(express.json())
 
-db.sync().then((result) => {
+
+
+// authRoutes
+app.use("/user", authRoutes)
+
+
+db.sync({force:true}).then((result) => {
     app.listen(PORT, () => {
     console.log(`Server is running on ${PORT}`)
 })
