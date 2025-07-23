@@ -93,17 +93,17 @@ body {
 .form-group label {
     display: block;
     color: #374151;
-    font-size: 1.375rem;
+    font-size: 1.5rem;
     font-weight: 500;
     margin-bottom: 1rem;
 }
 
 .form-input {
     width: 100%;
-    padding: 1.75rem 2rem;
+    padding: 1rem 2rem;
     border: 2px solid #e5e7eb;
     border-radius: 1.25rem;
-    font-size: 1.375rem;
+    font-size: 2rem;
     font-weight: 400;
     transition: all 0.2s ease;
     background: #ffffff;
@@ -124,68 +124,10 @@ body {
 
 .form-input::placeholder {
     color: #9ca3af;
-    font-size: 1.25rem;
+    font-size: 1.5rem;
 }
 
-/* Checkbox styling */
-.checkbox-group {
-    margin-bottom: 3rem;
-}
 
-.checkbox-label {
-    display: flex;
-    align-items: flex-start;
-    cursor: pointer;
-    font-size: 1.25rem;
-    color: #6b7280;
-    line-height: 1.6;
-}
-
-.checkbox-label input[type="checkbox"] {
-    opacity: 0;
-    position: absolute;
-}
-
-.checkmark {
-    width: 28px;
-    height: 28px;
-    border: 2px solid #d1d5db;
-    border-radius: 8px;
-    margin-right: 1.25rem;
-    margin-top: 3px;
-    position: relative;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark {
-    background: #6366f1;
-    border-color: #6366f1;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
-    content: '';
-    position: absolute;
-    left: 8px;
-    top: 4px;
-    width: 8px;
-    height: 12px;
-    border: solid white;
-    border-width: 0 3px 3px 0;
-    transform: rotate(45deg);
-}
-
-.link {
-    color: #6366f1;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s ease;
-}
-
-.link:hover {
-    color: #4f46e5;
-    text-decoration: underline;
-}
 
 .submit-btn {
     width: 100%;
@@ -194,7 +136,7 @@ body {
     border: none;
     padding: 1.75rem 2.5rem;
     border-radius: 1.25rem;
-    font-size: 1.5rem;
+    font-size: 2rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -233,7 +175,7 @@ body {
 
 .form-footer p {
     color: #6b7280;
-    font-size: 1.25rem;
+    font-size: 2rem;
 }
 
 /* Right side - Background */
