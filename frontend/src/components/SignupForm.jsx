@@ -76,7 +76,7 @@ const SignupForm = () => {
         <div className="form-section">
           <div className="form-wrapper">
             <div className="logo">
-              <h1>Nexus</h1>
+              <h1>Chat Hub</h1>
             </div>
             
             <div className="form-header">
