@@ -110,7 +110,7 @@ export const loginController = async (req, res) => {
         }
 
 
-        const { password } = user.toJSON();
+        
         const jwtToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET)
         console.log(jwtToken)
 

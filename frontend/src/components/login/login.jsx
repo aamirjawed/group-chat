@@ -30,15 +30,43 @@ const LoginPage = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      if (formData.email && formData.password) {
-        showToast('Login successful!', 'success');
-      } else {
-        showToast('Please fill in all fields', 'error');
+    if (!formData.email || !formData.password) {
+      showToast("All fields are required");
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch('http://localhost:5000/user/login', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email: formData.email, password: formData.password })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        showToast("Login failed, try again.")
+        return
       }
-    }, 2000);
+
+      showToast("Login Successful")
+
+      if (data.token) {
+        localStorage.setItem("token", data.token)
+      }
+
+
+    } catch (error) {
+      console.error('Login error:', error);
+      showToast('Network error. Please try again.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+
+
   };
 
   return (
@@ -49,7 +77,7 @@ const LoginPage = () => {
           <div className="logo">
             <h1>Chat Hub</h1>
           </div>
-          
+
           <div className="form-header">
             <h2>Welcome back</h2>
             <p>Sign in to your account to continue</p>
@@ -118,7 +146,7 @@ const LoginPage = () => {
             <p>
               Discover amazing features and connect with thousands of users worldwide.
             </p>
-            
+
             <div className="features">
               <div className="feature">
                 <div className="feature-icon">
