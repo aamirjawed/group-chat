@@ -16,15 +16,7 @@ export const signupController = async (req, res) => {
             });
         }
 
-        // Validate input formats
-        const validationErrors = validateInputs(fullName, email, phoneNumber, password);
-        if (validationErrors.length > 0) {
-            return res.status(400).json({ 
-                success: false,
-                error: "Validation failed",
-                messages: validationErrors
-            });
-        }
+       
 
         // Check if email already exists
         const existingEmail = await User.findOne({ where: { email: email.toLowerCase() } });
@@ -73,25 +65,6 @@ export const signupController = async (req, res) => {
     } catch (error) {
         console.log("Error in signup controller:", error.message);
         console.error("Full error:", error);
-        
-        // Handle specific database errors
-        if (error.name === 'SequelizeUniqueConstraintError') {
-            const field = error.errors[0]?.path;
-            return res.status(409).json({ 
-                success: false,
-                error: "Duplicate entry",
-                message: `${field} already exists`
-            });
-        }
-        
-        if (error.name === 'SequelizeValidationError') {
-            const validationErrors = error.errors.map(err => err.message);
-            return res.status(400).json({ 
-                success: false,
-                error: "Validation error",
-                messages: validationErrors
-            });
-        }
 
         res.status(500).json({ 
             success: false,
@@ -101,53 +74,54 @@ export const signupController = async (req, res) => {
     }
 };
 
-// Helper function for input validation
-const validateInputs = (fullName, email, phoneNumber, password) => {
-    const errors = [];
-
-    // Full name validation
-    if (fullName.trim().length < 2) {
-        errors.push("Full name must be at least 2 characters long");
-    }
-    if (fullName.trim().length > 100) {
-        errors.push("Full name must not exceed 100 characters");
-    }
-    if (!/^[a-zA-Z\s'-]+$/.test(fullName.trim())) {
-        errors.push("Full name can only contain letters, spaces, hyphens, and apostrophes");
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        errors.push("Please provide a valid email address");
-    }
-    if (email.length > 254) {
-        errors.push("Email address is too long");
-    }
 
 
-    // Password validation
-    if (password.length < 8) {
-        errors.push("Password must be at least 8 characters long");
-    }
-    if (password.length > 128) {
-        errors.push("Password must not exceed 128 characters");
-    }
-    if (!/(?=.*[a-z])/.test(password)) {
-        errors.push("Password must contain at least one lowercase letter");
-    }
-    if (!/(?=.*[A-Z])/.test(password)) {
-        errors.push("Password must contain at least one uppercase letter");
-    }
-    if (!/(?=.*\d)/.test(password)) {
-        errors.push("Password must contain at least one number");
-    }
-    if (!/(?=.*[@$!%*?&])/.test(password)) {
-        errors.push("Password must contain at least one special character (@$!%*?&)");
+
+
+export const loginController = async(req, res) => {
+    const {email, password} = req.body;
+
+    if(!email || !password){
+        return res.status(400).json({ 
+                success: false,
+                error: "All fields are required",
+                message: "Please provide email and password"
+            });
     }
 
-    return errors;
-};
+    try {
+        const user = await User.findOne({where:{email}})
 
-// Optional: Export validation function for testing
-export { validateInputs };
+        if(!user){
+            return res.status(404).json({
+                success:false,
+                error:"User not found",
+                message:"User with this email does not exist"
+            })
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password)
+
+        if(!isMatch){
+            return res.status(401).json({
+                success:false,
+                error:"Invalid credentials",
+                message:"Invalid email or password"
+            })
+        }
+
+        const { password: _, ...userResponse } = user.toJSON();
+
+        res.status(200).json({
+            success:true,
+            message:"Login Successful"
+        })
+    } catch (error) {
+        console.log("Error in login controller", error.message)
+        res.status(500).json({
+            success:false,
+            error:"Server side error",
+            message:"Something went wrong while logging in"
+        })
+    }
+}
