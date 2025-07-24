@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { ArrowRight, User, Lock, Mail, Check, X } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import './login.css'
 
 const LoginPage = () => {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -57,7 +58,10 @@ const LoginPage = () => {
       if (data.token) {
         localStorage.setItem("token", data.token)
       }
-
+      setTimeout(() => {
+        navigate('/dashboard')
+      }, 1000)
+      
 
     } catch (error) {
       console.error('Login error:', error);
