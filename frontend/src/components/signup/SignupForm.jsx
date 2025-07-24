@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router';
 import './SignForm.css'
 
 const SignupForm = () => {
@@ -158,7 +159,7 @@ const SignupForm = () => {
             </div>
 
             <div className="form-footer">
-              <p>Already have an account? <a href="#" className="link">Sign in</a></p>
+              <p>Already have an account? <Link to="/login" className="link">Sign in</Link></p>
             </div>
           </div>
         </div>
