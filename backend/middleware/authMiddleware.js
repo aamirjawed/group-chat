@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken'
-import User from '../model/userModel'
+import User from '../model/userModel.js'
 
 export const authUser = async(req, res, next) => {
 
@@ -10,21 +10,25 @@ try {
         throw new Error("Token is not valid")
     }
 
-    const decodedMessage = await jwt.verify(token, process.env.JWT_SECRET)
-    const {userId} = decodedMessage
+    const decodedMessage =  await jwt.verify(token, process.env.JWT_SECRET)
+    const {id} = decodedMessage
 
-    const user = User.findByPk(userId)
+    const user = await User.findByPk(id)
 
     if(!user){
         throw new Error("User not found")
     }
+
+    
+    req.user = user
 
     next()
 } catch (error) {
     console.log("Error in auth middleware", error.message)
     res.status(400).json({
         success:false,
-        error:"Server side error"
+        error:"Invalid token",
+        message:"Token not valid"
     })
 }
     
