@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser'
 import db from './utils/db-connection.js'
 import authRoutes from './routes/authRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
+import messageRoutes from './routes/messageRoutes.js'
 
 dotenv.config({
     path: './.env'
@@ -28,6 +29,9 @@ app.use('/user', authRoutes)
 // Dashboard Routes
 
 app.use('/api/v1/dashboard', dashboardRoutes)
+
+// message routes
+app.use('/api/v1/user-message', messageRoutes)
 
 
 
