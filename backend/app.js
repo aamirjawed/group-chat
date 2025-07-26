@@ -12,28 +12,37 @@ dotenv.config({
 })
 
 const app = express()
-app.use(cookieParser())
 
 const PORT = 5000
 
-app.use(express.json())
+// CORS must come BEFORE other middleware
 app.use(cors({
-  origin:"*",
-  credentials:true,
-}))
+  origin: 'http://localhost:5173', // Your React app URL (Vite default)
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
+// Other middleware after CORS
+app.use(cookieParser())
+app.use(express.json())
+
+app.get('/test', (req, res) => {
+  res.json({ message: 'Backend server is working!' });
+});
+
+app.get('/', (req, res) => {
+  res.json({ message: 'Server is running' });
+});
 
 // Auth Routes 
 app.use('/user', authRoutes)
 
 // Dashboard Routes
-
 app.use('/api/v1/dashboard', dashboardRoutes)
 
 // message routes
-app.use('/api/v1/user-message', messageRoutes)
-
-
+app.use('/api/v1', messageRoutes) // Changed this line
 
 db.sync().then((result) => {
   app.listen(PORT, () => {

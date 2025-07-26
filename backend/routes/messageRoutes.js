@@ -6,7 +6,7 @@ import { authUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', authUser, userMessageController)
+router.post('/user-message', authUser,userMessageController)
 
 
 export default router

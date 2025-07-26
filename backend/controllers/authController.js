@@ -94,7 +94,7 @@ export const loginController = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 error: "User not found",
-                message: "User with this email does not exist"
+                message: "Invalid email or password"
             })
         }
 
@@ -111,19 +111,23 @@ export const loginController = async (req, res) => {
 
 
         
-        const jwtToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET)
-        console.log(jwtToken)
+        const jwtToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' })
+        console.log("JWT Token",jwtToken)
 
         res.cookie("token", jwtToken, {
-            httpOnly: true,
-            secure: false, // Set to true in production (requires HTTPS)
-            sameSite: 'Lax',
-            maxAge: 10 * 60 * 1000 // 1 day
-        });
+    httpOnly: true,
+    secure: false, // false for localhost
+    sameSite: 'lax', // lowercase 'lax'
+    path: '/', // Add this
+    maxAge: 10 * 60 * 1000
+});
 
         res.status(200).json({
             success: true,
-            message: "Login Successful"
+            message: "Login Successful",
+            user:{
+                name:user.name
+            }
         })
     } catch (error) {
         console.log("Error in login controller", error.message)

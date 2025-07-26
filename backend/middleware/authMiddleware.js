@@ -3,13 +3,16 @@ import User from '../model/userModel.js'
 
 export const authUser = async (req, res, next) => {
     try {
+        console.log("All cookies:", req.cookies) // Add this line
         const { token } = req.cookies
 
         if (!token) {
+            // Clear any invalid cookie
+            res.clearCookie('token')
             return res.status(401).json({
                 success: false,
                 error: "No token provided",
-                message: "Token not valid"
+                message: "Please login"
             })
         }
 
@@ -27,10 +30,21 @@ export const authUser = async (req, res, next) => {
         }
 
         req.user = user
+        req.userId = user.id
         next()
 
     } catch (error) {
         console.log("Error in auth middleware:", error.message)
+
+        // Handle specific JWT errors
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({
+                success: false,
+                error: "Token expired",
+                message: "Please login again"
+            })
+        }
+
         return res.status(401).json({
             success: false,
             error: "Invalid token",

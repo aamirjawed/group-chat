@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ArrowRight, User, Lock, Mail, Check, X } from 'lucide-react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate
+
+ } from 'react-router';
 import './login.css'
 
 const LoginPage = () => {
@@ -36,31 +38,32 @@ const LoginPage = () => {
       setIsLoading(false)
       return
     }
-
+console.log("Attempting login..."); // Add this
     try {
       const response = await fetch('http://localhost:5000/user/login', {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
+        credentials:'include',
         body: JSON.stringify({ email: formData.email, password: formData.password })
       })
 
       const data = await response.json()
+      console.log("Login response data:", data); // Add this
 
       if (!response.ok) {
-        showToast("Login failed, try again.")
-        return
+        showToast('Invalid email or password')
+        return;
       }
 
       showToast("Login Successful")
-
-      if (data.token) {
-        localStorage.setItem("token", data.token)
-      }
-      setTimeout(() => {
-        navigate('/dashboard')
-      }, 1000)
+     setTimeout(() => {
+      navigate('/dashboard')
+     }, 1000)
+      
+      
+     return data
       
 
     } catch (error) {

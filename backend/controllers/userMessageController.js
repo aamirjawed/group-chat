@@ -15,11 +15,11 @@ export const userMessageController = async (req, res) => {
             })
         }
 
-        const {id} = req.user
+       
 
         const message = await Message.create({
             userMessage:userMessage,
-            userId:id
+            userId:req.userId
         })
 
         if(!message){

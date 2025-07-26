@@ -3,34 +3,11 @@ import { Send, Users } from 'lucide-react';
 import './dashboard.css'
 
 const GroupChatDashboard = () => {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      user: 'Alice Johnson',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
-      message: 'Hey everyone! Welcome to our group chat!',
-      timestamp: '10:30 AM',
-      isOwn: false
-    },
-    {
-      id: 2,
-      user: 'You',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=You',
-      message: 'Thanks Alice! Excited to be here.',
-      timestamp: '10:32 AM',
-      isOwn: true
-    },
-    {
-      id: 3,
-      user: 'Bob Smith',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob',
-      message: 'This looks great! How is everyone doing today?',
-      timestamp: '10:35 AM',
-      isOwn: false
-    }
-  ]);
-
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  
   const [onlineUsers] = useState([
     { id: 1, name: 'Alice Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice', status: 'online' },
     { id: 2, name: 'Bob Smith', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob', status: 'online' },
@@ -49,18 +26,41 @@ const GroupChatDashboard = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      const message = {
-        id: messages.length + 1,
-        user: 'You',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=You',
-        message: newMessage,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isOwn: true
-      };
-      setMessages([...messages, message]);
-      setNewMessage('');
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
+    console.log("Document cookies:", document.cookie);
+
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/user-message', {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json"
+        },
+        credentials: 'include',
+        body: JSON.stringify({ userMessage: newMessage.trim() })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to send message');
+      }
+
+      const data = await response.json();
+      
+      // Clear the input on success
+      setNewMessage("");
+      
+      // Optional: Show success feedback
+      console.log('Message sent successfully:', data);
+      
+    } catch (error) {
+      console.error('Failed to send message:', error.message);
+      setError(error.message || 'Failed to send message. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -116,19 +116,22 @@ const GroupChatDashboard = () => {
 
           {/* Message Input */}
           <div className="message-input-area">
+            {error && <div className="error-message" style={{color: 'red', fontSize: '14px', marginBottom: '8px'}}>{error}</div>}
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Type a message..."
               className="message-input"
+              disabled={isLoading}
             />
             <button 
               onClick={handleSendMessage}
               className="send-button"
+              disabled={isLoading || !newMessage.trim()}
             >
-              Send
+              {isLoading ? 'Sending...' : 'Send'}
             </button>
           </div>
         </div>
