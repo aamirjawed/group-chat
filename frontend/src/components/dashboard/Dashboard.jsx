@@ -7,6 +7,7 @@ const GroupChatDashboard = () => {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [currentUserId, setCurrentUserId] = useState(null);
   
   const [onlineUsers] = useState([
     { id: 1, name: 'Alice Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice', status: 'online' },
@@ -25,6 +26,22 @@ const GroupChatDashboard = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Function to get user details by ID
+  const getUserById = (userId) => {
+    return onlineUsers.find(user => user.id === userId) || {
+      id: userId,
+      name: `User ${userId}`,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=User${userId}`,
+      status: 'unknown'
+    };
+  };
+
+  // Function to format timestamp
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -53,6 +70,9 @@ const GroupChatDashboard = () => {
       // Clear the input on success
       setNewMessage("");
       
+      // Refresh messages after sending
+      await allMessages();
+      
       // Optional: Show success feedback
       console.log('Message sent successfully:', data);
       
@@ -70,6 +90,51 @@ const GroupChatDashboard = () => {
       handleSendMessage();
     }
   };
+
+  const allMessages = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/user-message', {
+        method: "GET",
+        credentials: "include"
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.log("Error in all messages in Dashboard");
+        return;
+      }
+
+      // Set current user ID from response
+      if (data.id && !currentUserId) {
+        setCurrentUserId(data.id);
+      }
+
+      // Process messages to add user details and format properly
+      const processedMessages = data.messages.map((message, index) => {
+        const user = getUserById(message.userId);
+        const isOwn = message.userId === data.id;
+        
+        return {
+          id: message.id || index, // Use message ID if available, otherwise use index
+          message: message.userMessage,
+          user: user.name,
+          userId: message.userId,
+          avatar: user.avatar,
+          timestamp: formatTimestamp(message.createdAt),
+          isOwn: isOwn
+        };
+      });
+
+      setMessages(processedMessages);
+    } catch (error) {
+      console.log('Server error while fetching all messages in dashboard', error.message);
+    }
+  };
+
+  useEffect(() => {
+    allMessages()
+  }, [])
 
   return (
     <div className="chat-dashboard">
@@ -116,7 +181,7 @@ const GroupChatDashboard = () => {
 
           {/* Message Input */}
           <div className="message-input-area">
-            {error && <div className="error-message" style={{color: 'red', fontSize: '14px', marginBottom: '8px'}}>{error}</div>}
+            {error && <div className="error-message">{error}</div>}
             <input
               type="text"
               value={newMessage}
