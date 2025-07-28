@@ -156,8 +156,17 @@ const GroupChatDashboard = () => {
   };
 
   useEffect(() => {
-    allMessages()
-  }, [])
+  allMessages();
+}, []);
+
+  useEffect(() => {
+  const intervalId = setInterval(() => {
+    allMessages();
+  }, 1000); // Fetch messages every 1 second
+
+  // Clear interval on component unmount
+  return () => clearInterval(intervalId);
+}, []);
 
   const activeUsers = getActiveUsers();
 
