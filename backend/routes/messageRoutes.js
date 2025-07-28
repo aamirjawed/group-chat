@@ -12,4 +12,5 @@ router.post('/user-message', authUser,userMessageController)
 router.get('/user-message', authUser, getUserMessage)
 
 
+
 export default router

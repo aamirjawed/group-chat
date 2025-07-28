@@ -17,6 +17,9 @@ body {
 
 /* Header */
 .chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 20px;
@@ -33,6 +36,15 @@ body {
 .chat-header p {
   font-size: 14px;
   opacity: 0.9;
+}
+
+.user-info{
+  display: flex;
+  gap: 2rem;
+}
+
+.current-user{
+  font-size: 1rem;
 }
 
 /* Main Container */

@@ -16,7 +16,6 @@ export const userMessageController = async (req, res) => {
         }
 
 
-
         const message = await Message.create({
             userMessage: userMessage,
             userId: req.userId
@@ -45,3 +44,6 @@ export const userMessageController = async (req, res) => {
         })
     }
 }
+
+
+ 

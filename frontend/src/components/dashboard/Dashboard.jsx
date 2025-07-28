@@ -8,14 +8,9 @@ const GroupChatDashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentUserId, setCurrentUserId] = useState(null);
-  
-  const [onlineUsers] = useState([
-    { id: 1, name: 'Alice Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice', status: 'online' },
-    { id: 2, name: 'Bob Smith', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob', status: 'online' },
-    { id: 3, name: 'Carol Davis', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carol', status: 'away' },
-    { id: 4, name: 'David Wilson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David', status: 'offline' },
-    { id: 5, name: 'Emma Brown', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma', status: 'online' }
-  ]);
+  const [currentUserName, setCurrentUserName] = useState(''); // Add current user name
+  const [users, setUsers] = useState([]); // Changed from onlineUsers to users
+  const [onlineUsers, setOnlineUsers] = useState([]); // Keep for actual online status
 
   const messagesEndRef = useRef(null);
 
@@ -27,9 +22,20 @@ const GroupChatDashboard = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Function to get user details by ID
+  // Function to get user details by ID from actual users data
   const getUserById = (userId) => {
-    return onlineUsers.find(user => user.id === userId) || {
+    const user = users.find(user => user.id === userId);
+    if (user) {
+      return {
+        id: user.id,
+        name: user.fullName,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.fullName}`,
+        status: onlineUsers.includes(userId) ? 'online' : 'offline'
+      };
+    }
+    
+    // Fallback for unknown users
+    return {
       id: userId,
       name: `User ${userId}`,
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=User${userId}`,
@@ -108,6 +114,17 @@ const GroupChatDashboard = () => {
       // Set current user ID from response
       if (data.id && !currentUserId) {
         setCurrentUserId(data.id);
+        
+        // Set current user name
+        const currentUser = data.users?.find(user => user.id === data.id);
+        if (currentUser) {
+          setCurrentUserName(currentUser.fullName);
+        }
+      }
+
+      // Set users from the response
+      if (data.users) {
+        setUsers(data.users);
       }
 
       // Process messages to add user details and format properly
@@ -132,24 +149,36 @@ const GroupChatDashboard = () => {
     }
   };
 
+  // Get unique users who have sent messages
+  const getActiveUsers = () => {
+    const uniqueUserIds = [...new Set(messages.map(msg => msg.userId))];
+    return uniqueUserIds.map(userId => getUserById(userId));
+  };
+
   useEffect(() => {
     allMessages()
   }, [])
+
+  const activeUsers = getActiveUsers();
 
   return (
     <div className="chat-dashboard">
       {/* Header */}
       <div className="chat-header">
         <h1>Chat Hub</h1>
-        <p>{onlineUsers.length} users online</p>
+        <div className="user-info">
+        <p>{activeUsers.length} active users • {onlineUsers.length} online</p>
+          {currentUserName && <span className="current-user">Welcome, {currentUserName}</span>}
+          
+        </div>
       </div>
 
       <div className="chat-container">
         {/* Sidebar */}
         <div className="sidebar">
-          <h3 className="online-user">Online Users</h3>
+          <h3 className="online-user">Active Users</h3>
           <div className="users-list">
-            {onlineUsers.map(user => (
+            {activeUsers.map(user => (
               <div key={user.id} className="user-item">
                 <img src={user.avatar} alt={user.name} className="user-avatar" />
                 <span className="user-name">{user.name}</span>
