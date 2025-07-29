@@ -44,7 +44,7 @@ app.use('/api/v1/dashboard', dashboardRoutes)
 // message routes
 app.use('/api/v1', messageRoutes) // Changed this line
 
-db.sync().then((result) => {
+db.sync({force:true}).then((result) => {
   app.listen(PORT, () => {
     console.log("Server is running on 5000")
   })
