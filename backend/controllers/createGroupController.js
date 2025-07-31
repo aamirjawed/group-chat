@@ -2,20 +2,20 @@
 // import Group from "../model/groupModel.js"
 // import User from "../model/userModel.js"
 
-import {GroupMember, Group, User} from '../model/index.js'
+import { GroupMember, Group, User } from '../model/index.js'
 
 
-export const createGroup = async(req, res) => {
+export const createGroup = async (req, res) => {
     try {
-        
 
-        const {groupName, description} = req.body
 
-        if(!groupName){
+        const { groupName, description } = req.body
+
+        if (!groupName) {
             return res.status(400).json({
-                success:false,
-                error:"No group name is given",
-                message:"Group name cannot be empty"
+                success: false,
+                error: "No group name is given",
+                message: "Group name cannot be empty"
             })
         }
 
@@ -26,7 +26,7 @@ export const createGroup = async(req, res) => {
             console.log("ERROR: req.userId is undefined!");
             console.log("req.user exists:", !!req.user);
             console.log("req.user.id:", req.user?.id);
-            
+
             return res.status(401).json({
                 success: false,
                 error: "Authentication failed",
@@ -39,7 +39,7 @@ export const createGroup = async(req, res) => {
         // Debug user data
         const user = await User.findByPk(userId);
         console.log("User lookup result:", user ? `Found: ${user.fullName} (${user.email})` : "Not found");
-        
+
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -48,7 +48,7 @@ export const createGroup = async(req, res) => {
             });
         }
 
-        
+
         // Create the group with userId as createdBy (for database relationships)
         const group = await Group.create({
             groupName,
@@ -56,7 +56,7 @@ export const createGroup = async(req, res) => {
             createdBy: userId
         });
 
-        
+
         // Create GroupMember entry (make the creator an admin)
         console.log("Creating group membership...");
         const groupMember = await GroupMember.create({
@@ -80,16 +80,16 @@ export const createGroup = async(req, res) => {
                     email: user.email
                 },
                 createdAt: group.createdAt,
-                role: 'admin' 
+                role: 'admin'
             }
         });
 
     } catch (error) {
         console.log("ERROR in create group controller:", error.message);
-    
+
         res.status(500).json({
             success: false,
-            error: "Internal Server error", 
+            error: "Internal Server error",
             message: "Something went wrong while creating group",
         });
     }
@@ -97,34 +97,34 @@ export const createGroup = async(req, res) => {
 
 
 
-export const addUserToGroup = async(req,res) => {
+export const addUserToGroup = async (req, res) => {
     try {
-        const {groupId} = req.params;
-        const {userIds} = req.body;
+        const { groupId } = req.params;
+        const { userIds } = req.body;
         const requesterId = req.userId;
 
-        const requesterMembership =  await GroupMember.findOne({
-            where:{
+        const requesterMembership = await GroupMember.findOne({
+            where: {
                 groupId,
-                userId:requesterId,
-                role:'admin'
+                userId: requesterId,
+                role: 'admin'
             }
         });
 
-        if(!requesterMembership){
+        if (!requesterMembership) {
             return res.status(403).json({
-                success:false,
-                message:"Only group admins can add members"
+                success: false,
+                message: "Only group admins can add members"
             })
         }
 
 
         const group = await Group.findByPk(groupId)
 
-        if(!group){
+        if (!group) {
             return res.status(404).json({
-                success:false,
-                message:"Group not found"
+                success: false,
+                message: "Group not found"
             })
         }
 
@@ -132,43 +132,43 @@ export const addUserToGroup = async(req,res) => {
         const failedUsers = [];
 
 
-        for(const userId of userIds){
+        for (const userId of userIds) {
             try {
                 const user = User.findByPk(userId)
-                if(!user){
-                    failedUsers.push({userId, reason:"User not found"})
+                if (!user) {
+                    failedUsers.push({ userId, reason: "User not found" })
                     continue;
                 }
 
                 const existingMembership = await GroupMember.findOne({
-                    where:{groupId, userId}
+                    where: { groupId, userId }
                 });
 
-                if(existingMembership){
-                    failedUsers.push({userId, reason:"User already a member"});
+                if (existingMembership) {
+                    failedUsers.push({ userId, reason: "User already a member" });
                     continue;
                 }
 
                 await GroupMember.create({
                     groupId,
                     userId,
-                    role:"member"
+                    role: "member"
                 })
 
                 addedUsers.push({
                     userId,
-                    fullName:user.fullName,
-                    email:user.email
+                    fullName: user.fullName,
+                    email: user.email
                 })
             } catch (error) {
-                failedUsers.push({userId, reason:error.message})
+                failedUsers.push({ userId, reason: error.message })
             }
         }
 
         res.status(200).json({
-            success:true,
-            message:"Users processed",
-            data:{
+            success: true,
+            message: "Users processed",
+            data: {
                 addedUsers,
                 failedUsers
             }
@@ -186,8 +186,8 @@ export const addUserToGroup = async(req,res) => {
 
 export const getUserGroups = async (req, res) => {
     try {
-        
-        
+
+
         const userId = req.userId;
 
 
@@ -204,9 +204,9 @@ export const getUserGroups = async (req, res) => {
             include: [
                 {
                     model: User,
-                    as: 'members', 
+                    as: 'members',
                     where: { id: userId },
-                    attributes: [], 
+                    attributes: [],
                     through: {
                         attributes: ['role', 'joinedAt']
                     }
@@ -227,10 +227,10 @@ export const getUserGroups = async (req, res) => {
         // Format the response
         const formattedGroups = userGroups.map(group => {
             const groupData = group.toJSON();
-            
+
             // Extract role from the through table
-            const membership = groupData.members && groupData.members.length > 0 
-                ? groupData.members[0].GroupMember 
+            const membership = groupData.members && groupData.members.length > 0
+                ? groupData.members[0].GroupMember
                 : { role: 'member', joinedAt: null };
 
             return {
@@ -266,7 +266,58 @@ export const getUserGroups = async (req, res) => {
             success: false,
             error: "Internal Server error",
             message: "Something went wrong while fetching user groups",
-            
+
         });
     }
+}
+
+
+
+export const getGroupMembers = async (req, res) => {
+
+    try {
+        const { groupId } = req.params
+        const userId = req.userId
+
+        const membership = await GroupMember.findOne({
+            where: { groupId, userId }
+        })
+
+        if (!membership) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not a member of this group"
+            })
+        }
+
+        const groupMembers = await User.findAll({
+            include: [
+                {
+                    model: Group,
+                    as: 'groups',
+                    where: { id: groupId },
+                    attributes: [],
+                    through: {
+                        attributes: ['role', 'joinedAt']
+                    }
+                }
+            ],
+            attributes: ['id', 'fullName', 'email']
+
+        })
+
+        res.status(200).json({
+            success: true,
+            message: "Group members retrieved successfully",
+            data: groupMembers
+        })
+    } catch (error) {
+        console.log("Error in get group members controller", error.message);
+        res.status(500).json({
+            success: false,
+            error: "Internal Server error",
+            message: "Something went wrong while fetching group members"
+        });
+    }
+
 }
