@@ -1,6 +1,9 @@
-import GroupMember from "../model/groupMemberModel.js"
-import Group from "../model/groupModel.js"
-import User from "../model/userModel.js"
+// import GroupMember from "../model/groupMemberModel.js"
+// import Group from "../model/groupModel.js"
+// import User from "../model/userModel.js"
+
+import {GroupMember, Group, User} from '../model/index.js'
+
 
 export const createGroup = async(req, res) => {
     try {
@@ -177,5 +180,95 @@ export const addUserToGroup = async(req,res) => {
             error: "Internal Server error",
             message: "Something went wrong while adding users to group"
         })
+    }
+}
+
+
+export const getUserGroups = async (req, res) => {
+    try {
+        console.log("=== GET USER GROUPS DEBUG ===");
+        console.log("req.userId:", req.userId);
+        console.log("=============================");
+        
+        const userId = req.userId;
+
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                error: "Authentication failed",
+                message: "User ID not found"
+            });
+        }
+
+        // Method 1: Using the many-to-many association
+        const userGroups = await Group.findAll({
+            include: [
+                {
+                    model: User,
+                    as: 'members', // This should match the alias in your associations
+                    where: { id: userId },
+                    attributes: [], // Don't include user data since we're filtering by current user
+                    through: {
+                        attributes: ['role', 'joinedAt']
+                    }
+                },
+                {
+                    // Include creator information
+                    model: User,
+                    as: 'creator',
+                    attributes: ['id', 'fullName', 'email'],
+                    required: false
+                }
+            ],
+            attributes: ['id', 'groupName', 'description', 'createdBy', 'createdAt']
+        });
+
+        console.log("✅ Found groups:", userGroups.length);
+
+        // Format the response
+        const formattedGroups = userGroups.map(group => {
+            const groupData = group.toJSON();
+            
+            // Extract role from the through table
+            const membership = groupData.members && groupData.members.length > 0 
+                ? groupData.members[0].GroupMember 
+                : { role: 'member', joinedAt: null };
+
+            return {
+                id: groupData.id,
+                groupName: groupData.groupName,
+                description: groupData.description,
+                createdBy: {
+                    id: groupData.createdBy,
+                    name: groupData.creator?.fullName || 'Unknown',
+                    email: groupData.creator?.email || null
+                },
+                createdAt: groupData.createdAt,
+                userRole: membership.role,
+                joinedAt: membership.joinedAt,
+                isCreator: groupData.createdBy === userId
+            };
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Groups retrieved successfully",
+            data: {
+                groups: formattedGroups,
+                totalGroups: formattedGroups.length
+            }
+        });
+
+    } catch (error) {
+        console.log("❌ Error in get user groups controller:", error.message);
+        console.log("Full error:", error);
+
+        res.status(500).json({
+            success: false,
+            error: "Internal Server error",
+            message: "Something went wrong while fetching user groups",
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 }
