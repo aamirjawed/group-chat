@@ -6,6 +6,7 @@ import db from './utils/db-connection.js'
 import authRoutes from './routes/authRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
 import messageRoutes from './routes/messageRoutes.js'
+import groupRoutes from './routes/groupRoutes.js'
 
 dotenv.config({
     path: './.env'
@@ -42,9 +43,14 @@ app.use('/user', authRoutes)
 app.use('/api/v1/dashboard', dashboardRoutes)
 
 // message routes
-app.use('/api/v1', messageRoutes) // Changed this line
+app.use('/api/v1', messageRoutes) 
 
-db.sync({force:true}).then((result) => {
+
+// group routes
+app.use('/api/v1', groupRoutes)
+
+
+db.sync().then((result) => {
   app.listen(PORT, () => {
     console.log("Server is running on 5000")
   })
