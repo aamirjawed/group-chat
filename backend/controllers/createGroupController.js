@@ -186,9 +186,7 @@ export const addUserToGroup = async(req,res) => {
 
 export const getUserGroups = async (req, res) => {
     try {
-        console.log("=== GET USER GROUPS DEBUG ===");
-        console.log("req.userId:", req.userId);
-        console.log("=============================");
+        
         
         const userId = req.userId;
 
@@ -206,9 +204,9 @@ export const getUserGroups = async (req, res) => {
             include: [
                 {
                     model: User,
-                    as: 'members', // This should match the alias in your associations
+                    as: 'members', 
                     where: { id: userId },
-                    attributes: [], // Don't include user data since we're filtering by current user
+                    attributes: [], 
                     through: {
                         attributes: ['role', 'joinedAt']
                     }
@@ -224,7 +222,7 @@ export const getUserGroups = async (req, res) => {
             attributes: ['id', 'groupName', 'description', 'createdBy', 'createdAt']
         });
 
-        console.log("✅ Found groups:", userGroups.length);
+        console.log("Found groups:", userGroups.length);
 
         // Format the response
         const formattedGroups = userGroups.map(group => {
@@ -261,14 +259,14 @@ export const getUserGroups = async (req, res) => {
         });
 
     } catch (error) {
-        console.log("❌ Error in get user groups controller:", error.message);
+        console.log(" Error in get user groups controller:", error.message);
         console.log("Full error:", error);
 
         res.status(500).json({
             success: false,
             error: "Internal Server error",
             message: "Something went wrong while fetching user groups",
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            
         });
     }
 }
