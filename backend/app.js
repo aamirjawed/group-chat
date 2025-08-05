@@ -1,5 +1,9 @@
-import cors from 'cors'
+
 import dotenv from 'dotenv'
+dotenv.config({ path: './.env' })
+
+
+import cors from 'cors'
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import db from './utils/db-connection.js'
@@ -8,17 +12,16 @@ import dashboardRoutes from './routes/dashboardRoutes.js'
 import messageRoutes from './routes/messageRoutes.js'
 import groupRoutes from './routes/groupRoutes.js'
 
-dotenv.config({
-    path: './.env'
-})
+
+
 
 const app = express()
 
-const PORT = 5000
+const port = process.env.PORT
 
 // CORS must come BEFORE other middleware
 app.use(cors({
-  origin: 'http://localhost:5173', // Your React app URL (Vite default)
+  origin: 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -51,8 +54,8 @@ app.use('/api/v1', groupRoutes)
 
 
 db.sync().then((result) => {
-  app.listen(PORT, () => {
-    console.log("Server is running on 5000")
+  app.listen(port, () => {
+    console.log(`Server is running on ${port}`)
   })
 }).catch((err) => {
   console.log("Error in syncing with database in app.js", err.message)
