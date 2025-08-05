@@ -70,28 +70,27 @@ const SignupForm = () => {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-gray-50 text-lg">
-
-      <div className="container">
+    <div className="page-wrapper">
+      <div className="main-container">
         {/* Left side - Form */}
-        <div className="form-section">
-          <div className="form-wrapper">
-            <div className="logo">
+        <div className="left-side">
+          <div className="form-box">
+            <div className="title">
               <h1>Chat Hub</h1>
             </div>
             
-            <div className="form-header">
+            <div className="welcome-text">
               <h2>Create your account</h2>
             </div>
 
-            <div className="signup-form"  onSubmit={handleSubmit}>
-              <div className="form-group">
+            <div className="signup-form" onSubmit={handleSubmit}>
+              <div className="input-group">
                 <label htmlFor="fullName">Full Name</label>
                 <input
                   type="text"
                   id="fullName"
                   name="fullName"
-                  className="form-input"
+                  className="input-field"
                   placeholder="Enter your full name"
                   value={formData.fullName}
                   onChange={handleInputChange}
@@ -99,13 +98,13 @@ const SignupForm = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="input-group">
                 <label htmlFor="email">Email Address</label>
                 <input
                   type="email"
                   id="email"
                   name="email"
-                  className="form-input"
+                  className="input-field"
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleInputChange}
@@ -113,13 +112,13 @@ const SignupForm = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="input-group">
                 <label htmlFor="phone">Phone Number</label>
                 <input
                   type="tel"
                   id="phone"
                   name="phone"
-                  className="form-input"
+                  className="input-field"
                   placeholder="Enter your phone number"
                   value={formData.phone}
                   onChange={handleInputChange}
@@ -127,13 +126,13 @@ const SignupForm = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="input-group">
                 <label htmlFor="password">Password</label>
                 <input
                   type="password"
                   id="password"
                   name="password"
-                  className="form-input"
+                  className="input-field"
                   placeholder="Create a strong password"
                   value={formData.password}
                   onChange={handleInputChange}
@@ -141,16 +140,16 @@ const SignupForm = () => {
                 />
               </div>
 
-              <button type="button" className="submit-btn" onClick={handleSubmit} disabled={loading}>
+              <button type="button" className="signup-button" onClick={handleSubmit} disabled={loading}>
                 {loading ? (
                   <>
                     Creating Account...
-                    <div className="spinner"></div>
+                    <div className="loading-spinner"></div>
                   </>
                 ) : (
                   <>
                     Create Account
-                    <svg className="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="arrow-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                     </svg>
                   </>
@@ -158,28 +157,28 @@ const SignupForm = () => {
               </button>
             </div>
 
-            <div className="form-footer">
-              <p>Already have an account? <Link to="/login" className="link">Sign in</Link></p>
+            <div className="login-link">
+              <p>Already have an account? <Link to="/login" className="link-text">Sign in</Link></p>
             </div>
           </div>
         </div>
 
         {/* Right side - Background */}
-        <div className="background-section">
+        <div className="right-side">
           <div className="background-overlay">
-            <div className="background-content">
+            <div className="right-content">
               <h3>Welcome to the future</h3>
               <p>Experience innovation like never before. Join our community and unlock endless possibilities.</p>
-              <div className="features">
-                <div className="feature">
+              <div className="feature-list">
+                <div className="feature-item">
                   <div className="feature-icon">✨</div>
                   <span>Premium Features</span>
                 </div>
-                <div className="feature">
+                <div className="feature-item">
                   <div className="feature-icon">🚀</div>
                   <span>Fast & Secure</span>
                 </div>
-                <div className="feature">
+                <div className="feature-item">
                   <div className="feature-icon">🌟</div>
                   <span>24/7 Support</span>
                 </div>
@@ -190,9 +189,9 @@ const SignupForm = () => {
       </div>
 
       {/* Toast Container */}
-      <div className="toast-container">
+      <div className="notification-area">
         {toasts.map((toast) => (
-          <div key={toast.id} className={`toast ${toast.type}`}>
+          <div key={toast.id} className={`notification ${toast.type}`}>
             {toast.message}
           </div>
         ))}

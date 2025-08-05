@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, User, Lock, Mail, Check, X } from 'lucide-react';
-import { Link, useNavigate
-
- } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import './login.css'
 
 const LoginPage = () => {
@@ -38,7 +36,7 @@ const LoginPage = () => {
       setIsLoading(false)
       return
     }
-console.log("Attempting login..."); // Add this
+console.log("Attempting login...");
     try {
       const response = await fetch('http://localhost:5000/user/login', {
         method: "POST",
@@ -50,7 +48,7 @@ console.log("Attempting login..."); // Add this
       })
 
       const data = await response.json()
-      console.log("Login response data:", data); // Add this
+      console.log("Login response data:", data);
 
       if (!response.ok) {
         showToast('Invalid email or password')
@@ -77,42 +75,42 @@ console.log("Attempting login..."); // Add this
   };
 
   return (
-    <div className="container">
+    <div className="main-container">
       {/* Left side - Form */}
-      <div className="form-section">
-        <div className="form-wrapper">
-          <div className="logo">
+      <div className="left-side">
+        <div className="form-box">
+          <div className="title">
             <h1>Chat Hub</h1>
           </div>
 
-          <div className="form-header">
+          <div className="welcome-text">
             <h2>Welcome back</h2>
             <p>Sign in to your account to continue</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="signup-form">
-            <div className="form-group">
-              <label className="form-label">Email</label>
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="input-group">
+              <label className="label">Email</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Enter your email"
-                className="form-input"
+                className="input-field"
                 required
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Password</label>
+            <div className="input-group">
+              <label className="label">Password</label>
               <input
                 type="password"
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Enter your password"
-                className="form-input"
+                className="input-field"
                 required
               />
             </div>
@@ -120,54 +118,54 @@ console.log("Attempting login..."); // Add this
             <button
               type="submit"
               disabled={isLoading}
-              className="submit-btn"
+              className="login-button"
             >
               {isLoading ? (
                 <>
-                  <div className="spinner"></div>
+                  <div className="loading-spinner"></div>
                   Signing in...
                 </>
               ) : (
                 <>
                   Sign In
-                  <ArrowRight className="btn-icon" />
+                  <ArrowRight className="arrow-icon" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="form-footer">
+          <div className="signup-link">
             <p>
               Don't have an account?{' '}
-              <Link to="/" className="link">Sign up</Link>
+              <Link to="/" className="link-text">Sign up</Link>
             </p>
           </div>
         </div>
       </div>
 
       {/* Right side - Background */}
-      <div className="background-section">
+      <div className="right-side">
         <div className="background-overlay">
-          <div className="background-content">
+          <div className="right-content">
             <h3>Join our community</h3>
             <p>
               Discover amazing features and connect with thousands of users worldwide.
             </p>
 
-            <div className="features">
-              <div className="feature">
+            <div className="feature-list">
+              <div className="feature-item">
                 <div className="feature-icon">
                   <Check size={16} />
                 </div>
                 <span>Secure & encrypted</span>
               </div>
-              <div className="feature">
+              <div className="feature-item">
                 <div className="feature-icon">
                   <User size={16} />
                 </div>
                 <span>Trusted by 10,000+ users</span>
               </div>
-              <div className="feature">
+              <div className="feature-item">
                 <div className="feature-icon">
                   <Mail size={16} />
                 </div>
@@ -179,11 +177,11 @@ console.log("Attempting login..."); // Add this
       </div>
 
       {/* Toast notifications */}
-      <div className="toast-container">
+      <div className="notification-area">
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className={`toast ${toast.type}`}
+            className={`notification ${toast.type}`}
           >
             {toast.message}
           </div>
