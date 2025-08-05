@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.post('/user-message', authUser,userMessageController)
 
-router.get('/user-message', authUser, getUserMessage)
+router.get('/:groupId/user-message', authUser, getUserMessage)
 
 
 

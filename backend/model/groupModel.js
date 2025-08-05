@@ -1,4 +1,4 @@
-// groupModel.js
+
 import { DataTypes } from "sequelize";
 import sequelize from "../utils/db-connection.js";
 
@@ -17,7 +17,7 @@ const Group = sequelize.define('Group', {
         type: DataTypes.TEXT,
         allowNull: true
     },
-    createdBy:{ // The user who created the group
+    createdBy:{ 
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
@@ -28,7 +28,29 @@ const Group = sequelize.define('Group', {
     isActive:{
         type: DataTypes.BOOLEAN,
         defaultValue: true
+    },
+    
+    inviteToken:{
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true 
+    },
+    inviteTokenExpires:{
+        type: DataTypes.DATE,
+        allowNull: true
     }
+}, {
+    indexes: [
+        {
+            fields: ['inviteToken'] 
+        },
+        {
+            fields: ['inviteTokenExpires'] 
+        },
+        {
+            fields: ['createdBy'] 
+        }
+    ]
 })
 
 export default Group;
