@@ -6,6 +6,7 @@ import './dashboard.css';
 const GroupChatDashboard = () => {
   const navigate = useNavigate();
 
+  // All the state variables
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,36 +19,47 @@ const GroupChatDashboard = () => {
   const [currentGroupId, setCurrentGroupId] = useState(null);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState('');
+  
+  // Create group modal states
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
   const [createGroupLoading, setCreateGroupLoading] = useState(false);
 
-  // Existing edit group states
+  // Edit group modal states
   const [showEditGroup, setShowEditGroup] = useState(false);
   const [editGroupName, setEditGroupName] = useState('');
   const [editGroupDescription, setEditGroupDescription] = useState('');
   const [editGroupLoading, setEditGroupLoading] = useState(false);
 
-  // New states for invite management
+  // Invite modal states
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteUrl, setInviteUrl] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
 
-  // New states for member management
+  // Member management states
   const [showMemberActions, setShowMemberActions] = useState({});
   const [memberActionLoading, setMemberActionLoading] = useState({});
 
-  // New states for join via invite
+  // Join group states
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinToken, setJoinToken] = useState('');
   const [joinLoading, setJoinLoading] = useState(false);
 
-  const messagesEnd = useRef(null);
-  const scrollDown = () => messagesEnd.current?.scrollIntoView({ behavior: 'smooth' });
-  useEffect(scrollDown, [messages]);
+  // Logout state
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
+  const messagesEnd = useRef(null);
+
+  // Scroll to bottom function
+  const scrollDown = () => {
+    if (messagesEnd.current) {
+      messagesEnd.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Check if user needs to login
   const handleAuthRedirect = (status) => {
     if (status === 401 || status === 403) {
       navigate('/login');
@@ -56,220 +68,416 @@ const GroupChatDashboard = () => {
     return false;
   };
 
+  // API call function for main routes
   const apiFetch = async (path, options = {}) => {
-    const res = await fetch(`http://localhost:5000/api/v1${path}`, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...options });
-    if (handleAuthRedirect(res.status)) return null;
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-    return await res.json();
+    try {
+      const response = await fetch(`http://localhost:5000/api/v1${path}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        ...options
+      });
+
+      if (handleAuthRedirect(response.status)) {
+        return null;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      throw err;
+    }
   };
 
+  // API call function for auth routes
+  const authApiFetch = async (path, options = {}) => {
+    try {
+      const response = await fetch(`http://localhost:5000${path}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        ...options
+      });
+
+      if (handleAuthRedirect(response.status)) {
+        return null;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  // Logout function
+  const handleLogout = async () => {
+    const confirmLogout = confirm('Are you sure you want to logout?');
+    if (!confirmLogout) {
+      return;
+    }
+    
+    setLogoutLoading(true);
+    setError('');
+    
+    try {
+      const data = await authApiFetch('/user/logout', {
+        method: 'POST'
+      });
+      
+      if (data && data.success) {
+        setUser(null);
+        setGroups([]);
+        setCurrentGroupId(null);
+        setMessages([]);
+        setMembers([]);
+        setGroup(null);
+        navigate('/login');
+      } else {
+        if (data && data.message) {
+          setError(data.message);
+        } else {
+          setError('Failed to logout');
+        }
+      }
+    } catch (err) {
+      setError('Failed to logout. Please try again.');
+      console.error('Logout error:', err);
+    }
+    
+    setLogoutLoading(false);
+  };
+
+  // Get all groups function
   const getGroups = async () => {
     setGroupsLoading(true);
     setError('');
+    
     try {
       const data = await apiFetch('/get-groups', { method: 'GET' });
-      if (data?.success) {
-        setGroups(data.groups || []);
-        if (data.groups?.length > 0 && !currentGroupId) {
+      
+      if (data && data.success) {
+        if (data.groups) {
+          setGroups(data.groups);
+        } else {
+          setGroups([]);
+        }
+        
+        if (data.groups && data.groups.length > 0 && !currentGroupId) {
           setCurrentGroupId(data.groups[0].id);
         }
       } else {
-        setError(data?.message || 'Failed to fetch groups');
+        if (data && data.message) {
+          setError(data.message);
+        } else {
+          setError('Failed to fetch groups');
+        }
       }
     } catch (err) {
       setError(err.message);
-    } finally {
-      setGroupsLoading(false);
     }
+    
+    setGroupsLoading(false);
   };
 
+  // Test auth function
   const testAuth = async () => {
     try {
       const data = await apiFetch('/auth/check', { method: 'GET' });
-      if (data) setDebugInfo(prev => prev + `\nAuth: ${JSON.stringify(data)}`);
+      if (data) {
+        setDebugInfo(debugInfo + `\nAuth: ${JSON.stringify(data)}`);
+      }
     } catch (err) {
-      setDebugInfo(prev => prev + `\nAuth failed: ${err.message}`);
+      setDebugInfo(debugInfo + `\nAuth failed: ${err.message}`);
     }
   };
 
+  // Create new group function
   const createGroup = async () => {
     if (!newGroupName.trim()) {
       setError('Group name cannot be empty');
       return;
     }
+    
     setCreateGroupLoading(true);
     setError('');
+    
     try {
+      const requestBody = {
+        groupName: newGroupName.trim(),
+        description: newGroupDescription.trim() || null
+      };
+      
       const data = await apiFetch('/create-group', {
         method: 'POST',
-        body: JSON.stringify({ groupName: newGroupName.trim(), description: newGroupDescription.trim() || null }),
+        body: JSON.stringify(requestBody),
       });
-      if (data?.success) {
+      
+      if (data && data.success) {
         setNewGroupName('');
         setNewGroupDescription('');
         setShowCreateGroup(false);
         await getGroups();
-        if (data.data?.id) setCurrentGroupId(data.data.id);
+        
+        if (data.data && data.data.id) {
+          setCurrentGroupId(data.data.id);
+        }
       } else {
-        setError(data?.message || 'Failed to create group');
+        if (data && data.message) {
+          setError(data.message);
+        } else {
+          setError('Failed to create group');
+        }
       }
-    } catch {
+    } catch (err) {
       setError('Failed to create group. Please try again.');
-    } finally {
-      setCreateGroupLoading(false);
     }
+    
+    setCreateGroupLoading(false);
   };
 
+  // Edit group function
   const editGroup = async () => {
     if (!editGroupName.trim()) {
       setError('Group name cannot be empty');
       return;
     }
+    
     setEditGroupLoading(true);
     setError('');
+    
     try {
+      const requestBody = {
+        groupId: currentGroupId,
+        groupName: editGroupName.trim(),
+        description: editGroupDescription.trim() || null
+      };
+      
       const data = await apiFetch('/edit-group', {
         method: 'POST',
-        body: JSON.stringify({ 
-          groupId: currentGroupId,
-          groupName: editGroupName.trim(), 
-          description: editGroupDescription.trim() || null 
-        }),
+        body: JSON.stringify(requestBody),
       });
-      if (data?.success) {
+      
+      if (data && data.success) {
         setShowEditGroup(false);
         await getGroups();
         await getMessages();
       } else {
-        setError(data?.message || 'Failed to update group');
+        if (data && data.message) {
+          setError(data.message);
+        } else {
+          setError('Failed to update group');
+        }
       }
-    } catch {
+    } catch (err) {
       setError('Failed to update group. Please try again.');
-    } finally {
-      setEditGroupLoading(false);
     }
+    
+    setEditGroupLoading(false);
   };
 
-  // New function: Generate invite link
+  // Generate invite link function
   const generateInviteLink = async () => {
-    if (!currentGroupId) return;
+    if (!currentGroupId) {
+      return;
+    }
+    
     setInviteLoading(true);
     setError('');
+    
     try {
       const data = await apiFetch(`/${currentGroupId}/invite/generate`, {
         method: 'POST'
       });
-      if (data?.success) {
+      
+      if (data && data.success) {
         setInviteUrl(data.data.inviteUrl);
         setShowInviteModal(true);
       } else {
-        setError(data?.message || 'Failed to generate invite link');
+        if (data && data.message) {
+          setError(data.message);
+        } else {
+          setError('Failed to generate invite link');
+        }
       }
-    } catch {
+    } catch (err) {
       setError('Failed to generate invite link');
-    } finally {
-      setInviteLoading(false);
     }
+    
+    setInviteLoading(false);
   };
 
-  // New function: Copy invite link
+  // Copy invite link function
   const copyInviteLink = async () => {
     try {
       await navigator.clipboard.writeText(inviteUrl);
       setInviteCopied(true);
-      setTimeout(() => setInviteCopied(false), 2000);
-    } catch {
+      setTimeout(() => {
+        setInviteCopied(false);
+      }, 2000);
+    } catch (err) {
       setError('Failed to copy invite link');
     }
   };
 
-  // New function: Join group via invite
+  // Join group via invite function
   const joinViaInvite = async () => {
     if (!joinToken.trim()) {
       setError('Please enter a valid invite token');
       return;
     }
+    
     setJoinLoading(true);
     setError('');
+    
     try {
       const data = await apiFetch(`/join/${joinToken.trim()}`, {
         method: 'POST'
       });
-      if (data?.success) {
+      
+      if (data && data.success) {
         setJoinToken('');
         setShowJoinModal(false);
         await getGroups();
-        if (data.data?.group?.id) {
+        
+        if (data.data && data.data.group && data.data.group.id) {
           setCurrentGroupId(data.data.group.id);
         }
       } else {
-        setError(data?.message || 'Failed to join group');
+        if (data && data.message) {
+          setError(data.message);
+        } else {
+          setError('Failed to join group');
+        }
       }
-    } catch {
+    } catch (err) {
       setError('Failed to join group. Please check the invite link.');
-    } finally {
-      setJoinLoading(false);
     }
+    
+    setJoinLoading(false);
   };
 
-  // New function: Update member role
+  // Update member role function
   const updateMemberRole = async (memberId, newRole) => {
-    if (!currentGroupId) return;
-    setMemberActionLoading(prev => ({ ...prev, [memberId]: true }));
+    if (!currentGroupId) {
+      return;
+    }
+    
+    const newMemberActionLoading = { ...memberActionLoading };
+    newMemberActionLoading[memberId] = true;
+    setMemberActionLoading(newMemberActionLoading);
     setError('');
+    
     try {
       const data = await apiFetch(`/${currentGroupId}/members/${memberId}/role`, {
         method: 'PUT',
         body: JSON.stringify({ role: newRole })
       });
-      if (data?.success) {
-        await getMessages(); // Refresh to get updated member info
-        setShowMemberActions(prev => ({ ...prev, [memberId]: false }));
+      
+      if (data && data.success) {
+        await getMessages();
+        const newShowMemberActions = { ...showMemberActions };
+        newShowMemberActions[memberId] = false;
+        setShowMemberActions(newShowMemberActions);
       } else {
-        setError(data?.message || 'Failed to update member role');
+        if (data && data.message) {
+          setError(data.message);
+        } else {
+          setError('Failed to update member role');
+        }
       }
-    } catch {
+    } catch (err) {
       setError('Failed to update member role');
-    } finally {
-      setMemberActionLoading(prev => ({ ...prev, [memberId]: false }));
     }
+    
+    const finalMemberActionLoading = { ...memberActionLoading };
+    finalMemberActionLoading[memberId] = false;
+    setMemberActionLoading(finalMemberActionLoading);
   };
 
-  // New function: Remove member
+  // Remove member function
   const removeMember = async (memberId) => {
-    if (!currentGroupId || !confirm('Are you sure you want to remove this member?')) return;
-    setMemberActionLoading(prev => ({ ...prev, [memberId]: true }));
+    if (!currentGroupId) {
+      return;
+    }
+    
+    const confirmRemove = confirm('Are you sure you want to remove this member?');
+    if (!confirmRemove) {
+      return;
+    }
+    
+    const newMemberActionLoading = { ...memberActionLoading };
+    newMemberActionLoading[memberId] = true;
+    setMemberActionLoading(newMemberActionLoading);
     setError('');
+    
     try {
       const data = await apiFetch(`/${currentGroupId}/members/${memberId}`, {
         method: 'DELETE'
       });
-      if (data?.success) {
-        await getMessages(); // Refresh to get updated member list
-        setShowMemberActions(prev => ({ ...prev, [memberId]: false }));
+      
+      if (data && data.success) {
+        await getMessages();
+        const newShowMemberActions = { ...showMemberActions };
+        newShowMemberActions[memberId] = false;
+        setShowMemberActions(newShowMemberActions);
       } else {
-        setError(data?.message || 'Failed to remove member');
+        if (data && data.message) {
+          setError(data.message);
+        } else {
+          setError('Failed to remove member');
+        }
       }
-    } catch {
+    } catch (err) {
       setError('Failed to remove member');
-    } finally {
-      setMemberActionLoading(prev => ({ ...prev, [memberId]: false }));
     }
+    
+    const finalMemberActionLoading = { ...memberActionLoading };
+    finalMemberActionLoading[memberId] = false;
+    setMemberActionLoading(finalMemberActionLoading);
   };
 
-  // New function: Leave group
+  // Leave group function
   const leaveGroup = async () => {
-    if (!currentGroupId || !confirm('Are you sure you want to leave this group?')) return;
+    if (!currentGroupId) {
+      return;
+    }
+    
+    const confirmLeave = confirm('Are you sure you want to leave this group?');
+    if (!confirmLeave) {
+      return;
+    }
+    
     setLoading(true);
     setError('');
+    
     try {
       const data = await apiFetch(`/${currentGroupId}/leave`, {
         method: 'DELETE'
       });
-      if (data?.success) {
+      
+      if (data && data.success) {
         await getGroups();
-        // Switch to another group if available
-        const remainingGroups = groups.filter(g => g.id !== currentGroupId);
+        
+        const remainingGroups = [];
+        for (let i = 0; i < groups.length; i++) {
+          if (groups[i].id !== currentGroupId) {
+            remainingGroups.push(groups[i]);
+          }
+        }
+        
         if (remainingGroups.length > 0) {
           setCurrentGroupId(remainingGroups[0].id);
         } else {
@@ -279,58 +487,113 @@ const GroupChatDashboard = () => {
           setGroup(null);
         }
       } else {
-        setError(data?.message || 'Failed to leave group');
+        if (data && data.message) {
+          setError(data.message);
+        } else {
+          setError('Failed to leave group');
+        }
       }
-    } catch {
+    } catch (err) {
       setError('Failed to leave group');
-    } finally {
-      setLoading(false);
     }
+    
+    setLoading(false);
   };
 
+  // Get messages function
   const getMessages = async () => {
-    if (!currentGroupId) return;
+    if (!currentGroupId) {
+      return;
+    }
+    
     setError('');
+    
     try {
       const data = await apiFetch(`/${currentGroupId}/user-message`, { method: 'GET' });
-      if (data?.success) {
+      
+      if (data && data.success) {
         setUser(data.currentUser);
         setGroup(data.group);
-        setMembers(data.members || []);
-        setOnlineUsers(data.onlineUsers || []);
-        setMessages((data.messages || []).map((m) => ({
-          id: m.id, text: m.content, userId: m.userId,
-          time: m.createdAt, isMe: m.isOwn, sender: m.sender,
-        })));
+        
+        if (data.members) {
+          setMembers(data.members);
+        } else {
+          setMembers([]);
+        }
+        
+        if (data.onlineUsers) {
+          setOnlineUsers(data.onlineUsers);
+        } else {
+          setOnlineUsers([]);
+        }
+        
+        if (data.messages) {
+          const formattedMessages = [];
+          for (let i = 0; i < data.messages.length; i++) {
+            const msg = data.messages[i];
+            formattedMessages.push({
+              id: msg.id,
+              text: msg.content,
+              userId: msg.userId,
+              time: msg.createdAt,
+              isMe: msg.isOwn,
+              sender: msg.sender,
+            });
+          }
+          setMessages(formattedMessages);
+        } else {
+          setMessages([]);
+        }
       } else {
-        setError(data?.message || 'Error loading messages');
+        if (data && data.message) {
+          setError(data.message);
+        } else {
+          setError('Error loading messages');
+        }
       }
-    } catch {
+    } catch (err) {
       setError('Error loading messages');
     }
   };
 
+  // Send message function
   const sendMessage = async () => {
-    if (!newMessage.trim() || !currentGroupId) return;
+    if (!newMessage.trim() || !currentGroupId) {
+      return;
+    }
+    
     setLoading(true);
     setError('');
+    
     try {
       const data = await apiFetch('/user-message', {
         method: 'POST',
-        body: JSON.stringify({ userMessage: newMessage.trim(), groupId: currentGroupId }),
+        body: JSON.stringify({
+          userMessage: newMessage.trim(),
+          groupId: currentGroupId
+        }),
       });
-      if (data?.success) {
+      
+      if (data && data.success) {
         setNewMessage('');
-        setTimeout(getMessages, 500);
+        setTimeout(() => {
+          getMessages();
+        }, 500);
       } else {
-        setError(data?.message || 'Failed to send message');
+        if (data && data.message) {
+          setError(data.message);
+        } else {
+          setError('Failed to send message');
+        }
       }
-    } catch {
+    } catch (err) {
       setError('Failed to send message');
     }
+    
     setLoading(false);
   };
 
+  // Handle enter key press
   const handleEnter = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -338,6 +601,7 @@ const GroupChatDashboard = () => {
     }
   };
 
+  // Change group function
   const changeGroup = (id) => {
     setCurrentGroupId(id);
     setMessages([]);
@@ -346,48 +610,177 @@ const GroupChatDashboard = () => {
     setError('');
   };
 
-  const formatTime = (t) => {
-    if (!t) return '';
-    return new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // Format time function
+  const formatTime = (timeString) => {
+    if (!timeString) {
+      return '';
+    }
+    
+    const date = new Date(timeString);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    
+    const formattedHours = hours < 10 ? '0' + hours : hours;
+    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+    
+    return formattedHours + ':' + formattedMinutes;
   };
 
-  const getMemberInfo = (uid) => {
-    const m = members.find((x) => x.id === uid);
-    return { name: m?.fullName || `User ${uid}`, online: onlineUsers.includes(uid) };
+  // Get member info function
+  const getMemberInfo = (userId) => {
+    let memberName = `User ${userId}`;
+    let isOnline = false;
+    
+    for (let i = 0; i < members.length; i++) {
+      if (members[i].id === userId) {
+        if (members[i].fullName) {
+          memberName = members[i].fullName;
+        }
+        break;
+      }
+    }
+    
+    for (let i = 0; i < onlineUsers.length; i++) {
+      if (onlineUsers[i] === userId) {
+        isOnline = true;
+        break;
+      }
+    }
+    
+    return {
+      name: memberName,
+      online: isOnline
+    };
   };
 
+  // Check if current user is admin
   const isCurrentUserAdmin = () => {
-    const currentMember = members.find(m => m.id === user?.id);
-    return currentMember?.role === 'admin';
+    if (!user || !user.id) {
+      return false;
+    }
+    
+    for (let i = 0; i < members.length; i++) {
+      if (members[i].id === user.id) {
+        return members[i].role === 'admin';
+      }
+    }
+    
+    return false;
   };
 
+  // Open edit modal function
   const openEditModal = () => {
-    setEditGroupName(group?.name || group?.groupName || '');
-    setEditGroupDescription(group?.description || '');
+    if (group) {
+      if (group.name) {
+        setEditGroupName(group.name);
+      } else if (group.groupName) {
+        setEditGroupName(group.groupName);
+      } else {
+        setEditGroupName('');
+      }
+      
+      if (group.description) {
+        setEditGroupDescription(group.description);
+      } else {
+        setEditGroupDescription('');
+      }
+    } else {
+      setEditGroupName('');
+      setEditGroupDescription('');
+    }
+    
     setShowEditGroup(true);
     setError('');
   };
 
+  // Toggle member actions function
   const toggleMemberActions = (memberId) => {
-    setShowMemberActions(prev => ({
-      ...prev,
-      [memberId]: !prev[memberId]
-    }));
+    const newShowMemberActions = { ...showMemberActions };
+    newShowMemberActions[memberId] = !newShowMemberActions[memberId];
+    setShowMemberActions(newShowMemberActions);
   };
 
+  // Handle create group form submit
+  const handleCreateGroupSubmit = (e) => {
+    e.preventDefault();
+    createGroup();
+  };
+
+  // Handle edit group form submit
+  const handleEditGroupSubmit = (e) => {
+    e.preventDefault();
+    editGroup();
+  };
+
+  // Handle join group form submit
+  const handleJoinGroupSubmit = (e) => {
+    e.preventDefault();
+    joinViaInvite();
+  };
+
+  // Handle join token input change
+  const handleJoinTokenChange = (e) => {
+    const value = e.target.value;
+    const tokenMatch = value.match(/\/join\/([a-f0-9]+)$/);
+    if (tokenMatch) {
+      setJoinToken(tokenMatch[1]);
+    } else {
+      setJoinToken(value);
+    }
+  };
+
+  // Close create group modal
+  const closeCreateGroupModal = () => {
+    setShowCreateGroup(false);
+    setNewGroupName('');
+    setNewGroupDescription('');
+    setError('');
+  };
+
+  // Close edit group modal
+  const closeEditGroupModal = () => {
+    setShowEditGroup(false);
+    setError('');
+  };
+
+  // Close join group modal
+  const closeJoinGroupModal = () => {
+    setShowJoinModal(false);
+    setJoinToken('');
+    setError('');
+  };
+
+  // useEffect for scrolling to bottom when messages change
+  useEffect(() => {
+    scrollDown();
+  }, [messages]);
+
+  // useEffect for initial load
   useEffect(() => {
     getGroups();
     testAuth();
   }, []);
 
+  // useEffect for getting messages when group changes
   useEffect(() => {
-    if (currentGroupId) getMessages();
+    if (currentGroupId) {
+      getMessages();
+    }
   }, [currentGroupId]);
 
+  // useEffect for auto-refresh messages
   useEffect(() => {
-    if (!currentGroupId) return;
-    const iv = setInterval(getMessages, 10000);
-    return () => clearInterval(iv);
+    if (!currentGroupId) {
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      getMessages();
+    }, 10000);
+    
+    return () => {
+      clearInterval(interval);
+    };
   }, [currentGroupId]);
 
   return (
@@ -397,8 +790,17 @@ const GroupChatDashboard = () => {
           <div className="header-left">
             <div className="header-title-section">
               <div>
-                <h1>{groups.length === 0 ? 'Chat App' : (group?.name || group?.groupName || 'Group Chat')}</h1>
-                {groups.length === 0 ? <p>No groups joined</p> : group?.description && <p>{group.description}</p>}
+                {groups.length === 0 ? (
+                  <h1>Chat App</h1>
+                ) : (
+                  <h1>{group && (group.name || group.groupName) ? (group.name || group.groupName) : 'Group Chat'}</h1>
+                )}
+                
+                {groups.length === 0 ? (
+                  <p>No groups joined</p>
+                ) : (
+                  group && group.description && <p>{group.description}</p>
+                )}
               </div>
               <div className="header-actions">
                 {group && isCurrentUserAdmin() && (
@@ -432,16 +834,37 @@ const GroupChatDashboard = () => {
               </div>
             </div>
             {groups.length > 1 && (
-              <select value={currentGroupId || ''} onChange={(e) => changeGroup(parseInt(e.target.value))}
+              <select 
+                value={currentGroupId || ''} 
+                onChange={(e) => changeGroup(parseInt(e.target.value))}
                 className="group-selector"
               >
-                {groups.map((g) => <option key={g.id} value={g.id}>{g.name || g.groupName}</option>)}
+                {groups.map((groupItem) => (
+                  <option key={groupItem.id} value={groupItem.id}>
+                    {groupItem.name || groupItem.groupName}
+                  </option>
+                ))}
               </select>
             )}
           </div>
           <div className="header-right">
-            <p>{groups.length === 0 ? '0 groups' : `${members.length} members • ${onlineUsers.length} online`}</p>
-            {user && <span className="current-user">Hi, {user.fullName}</span>}
+            {groups.length === 0 ? (
+              <p>0 groups</p>
+            ) : (
+              <p>{members.length} members • {onlineUsers.length} online</p>
+            )}
+            <div className="user-section">
+              {user && <span className="current-user">Hi, {user.fullName}</span>}
+              <button 
+                onClick={handleLogout}
+                className="logout-button"
+                disabled={logoutLoading}
+                title="Logout"
+              >
+                <LogOut size={16} />
+                <span>{logoutLoading ? 'Logging out...' : 'Logout'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -457,21 +880,40 @@ const GroupChatDashboard = () => {
       )}
 
       {groupsLoading && (
-        <div className="loading-banner"><span>Loading groups...</span></div>
+        <div className="loading-banner">
+          <span>Loading groups...</span>
+        </div>
       )}
 
       <div className="chat-container">
         <div className="sidebar">
           <div className="sidebar-header">
-            <h3><Users className="sidebar-icon" />{groups.length === 0 ? 'Groups' : `Members (${members.length})`}</h3>
+            {groups.length === 0 ? (
+              <h3><Users className="sidebar-icon" />Groups</h3>
+            ) : (
+              <h3><Users className="sidebar-icon" />Members ({members.length})</h3>
+            )}
             <div className="sidebar-actions">
-              <button onClick={getGroups} className="refresh-button" disabled={groupsLoading} title="Refresh groups">
+              <button 
+                onClick={getGroups} 
+                className="refresh-button" 
+                disabled={groupsLoading} 
+                title="Refresh groups"
+              >
                 {groupsLoading ? 'Loading...' : 'Refresh'}
               </button>
-              <button onClick={() => setShowJoinModal(true)} className="join-group-button" title="Join group via invite">
+              <button 
+                onClick={() => setShowJoinModal(true)} 
+                className="join-group-button" 
+                title="Join group via invite"
+              >
                 <UserPlus className="plus-icon"/> Join
               </button>
-              <button onClick={() => setShowCreateGroup(true)} className="create-group-button" title="Create new group">
+              <button 
+                onClick={() => setShowCreateGroup(true)} 
+                className="create-group-button" 
+                title="Create new group"
+              >
                 <Plus className="plus-icon"/> Create
               </button>
             </div>
@@ -484,30 +926,54 @@ const GroupChatDashboard = () => {
                 <div className="modal-content">
                   <div className="modal-header">
                     <h4>Create New Group</h4>
-                    <button onClick={() => setShowCreateGroup(false)} disabled={createGroupLoading} className="modal-close">
+                    <button 
+                      onClick={() => setShowCreateGroup(false)} 
+                      disabled={createGroupLoading} 
+                      className="modal-close"
+                    >
                       <X className="close-icon"/>
                     </button>
                   </div>
-                  <form onSubmit={(e) => { e.preventDefault(); createGroup(); }} className="create-group-form">
+                  <form onSubmit={handleCreateGroupSubmit} className="create-group-form">
                     <div className="form-group">
                       <label htmlFor="groupName">Group Name *</label>
-                      <input id="groupName" type="text" value={newGroupName}
+                      <input 
+                        id="groupName" 
+                        type="text" 
+                        value={newGroupName}
                         onChange={(e) => setNewGroupName(e.target.value)}
-                        disabled={createGroupLoading} required maxLength={50} className="form-input"
+                        disabled={createGroupLoading} 
+                        required 
+                        maxLength={50} 
+                        className="form-input"
                       />
                     </div>
                     <div className="form-group">
                       <label htmlFor="groupDescription">Description (Optional)</label>
-                      <textarea id="groupDescription" value={newGroupDescription}
+                      <textarea 
+                        id="groupDescription" 
+                        value={newGroupDescription}
                         onChange={(e) => setNewGroupDescription(e.target.value)}
-                        disabled={createGroupLoading} rows={3} maxLength={200} className="form-textarea"
+                        disabled={createGroupLoading} 
+                        rows={3} 
+                        maxLength={200} 
+                        className="form-textarea"
                       />
                     </div>
                     <div className="form-actions">
-                      <button type="button" onClick={() => { setShowCreateGroup(false); setNewGroupName(''); setNewGroupDescription(''); setError(''); }} disabled={createGroupLoading} className="cancel-button">
+                      <button 
+                        type="button" 
+                        onClick={closeCreateGroupModal} 
+                        disabled={createGroupLoading} 
+                        className="cancel-button"
+                      >
                         Cancel
                       </button>
-                      <button type="submit" disabled={createGroupLoading || !newGroupName.trim()} className="submit-button">
+                      <button 
+                        type="submit" 
+                        disabled={createGroupLoading || !newGroupName.trim()} 
+                        className="submit-button"
+                      >
                         {createGroupLoading ? 'Creating...' : 'Create Group'}
                       </button>
                     </div>
@@ -522,30 +988,54 @@ const GroupChatDashboard = () => {
                 <div className="modal-content">
                   <div className="modal-header">
                     <h4>Edit Group</h4>
-                    <button onClick={() => setShowEditGroup(false)} disabled={editGroupLoading} className="modal-close">
+                    <button 
+                      onClick={() => setShowEditGroup(false)} 
+                      disabled={editGroupLoading} 
+                      className="modal-close"
+                    >
                       <X className="close-icon"/>
                     </button>
                   </div>
-                  <form onSubmit={(e) => { e.preventDefault(); editGroup(); }} className="create-group-form">
+                  <form onSubmit={handleEditGroupSubmit} className="create-group-form">
                     <div className="form-group">
                       <label htmlFor="editGroupName">Group Name *</label>
-                      <input id="editGroupName" type="text" value={editGroupName}
+                      <input 
+                        id="editGroupName" 
+                        type="text" 
+                        value={editGroupName}
                         onChange={(e) => setEditGroupName(e.target.value)}
-                        disabled={editGroupLoading} required maxLength={50} className="form-input"
+                        disabled={editGroupLoading} 
+                        required 
+                        maxLength={50} 
+                        className="form-input"
                       />
                     </div>
                     <div className="form-group">
                       <label htmlFor="editGroupDescription">Description (Optional)</label>
-                      <textarea id="editGroupDescription" value={editGroupDescription}
+                      <textarea 
+                        id="editGroupDescription" 
+                        value={editGroupDescription}
                         onChange={(e) => setEditGroupDescription(e.target.value)}
-                        disabled={editGroupLoading} rows={3} maxLength={200} className="form-textarea"
+                        disabled={editGroupLoading} 
+                        rows={3} 
+                        maxLength={200} 
+                        className="form-textarea"
                       />
                     </div>
                     <div className="form-actions">
-                      <button type="button" onClick={() => { setShowEditGroup(false); setError(''); }} disabled={editGroupLoading} className="cancel-button">
+                      <button 
+                        type="button" 
+                        onClick={closeEditGroupModal} 
+                        disabled={editGroupLoading} 
+                        className="cancel-button"
+                      >
                         Cancel
                       </button>
-                      <button type="submit" disabled={editGroupLoading || !editGroupName.trim()} className="submit-button">
+                      <button 
+                        type="submit" 
+                        disabled={editGroupLoading || !editGroupName.trim()} 
+                        className="submit-button"
+                      >
                         {editGroupLoading ? 'Saving...' : 'Save Changes'}
                       </button>
                     </div>
@@ -560,7 +1050,10 @@ const GroupChatDashboard = () => {
                 <div className="modal-content">
                   <div className="modal-header">
                     <h4>Invite Link Generated</h4>
-                    <button onClick={() => setShowInviteModal(false)} className="modal-close">
+                    <button 
+                      onClick={() => setShowInviteModal(false)} 
+                      className="modal-close"
+                    >
                       <X className="close-icon"/>
                     </button>
                   </div>
@@ -593,33 +1086,41 @@ const GroupChatDashboard = () => {
                 <div className="modal-content">
                   <div className="modal-header">
                     <h4>Join Group</h4>
-                    <button onClick={() => setShowJoinModal(false)} disabled={joinLoading} className="modal-close">
+                    <button 
+                      onClick={() => setShowJoinModal(false)} 
+                      disabled={joinLoading} 
+                      className="modal-close"
+                    >
                       <X className="close-icon"/>
                     </button>
                   </div>
-                  <form onSubmit={(e) => { e.preventDefault(); joinViaInvite(); }} className="create-group-form">
+                  <form onSubmit={handleJoinGroupSubmit} className="create-group-form">
                     <div className="form-group">
                       <label htmlFor="joinToken">Invite Token or Link</label>
                       <input 
                         id="joinToken" 
                         type="text" 
                         value={joinToken}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          // Extract token from full URL if pasted
-                          const tokenMatch = value.match(/\/join\/([a-f0-9]+)$/);
-                          setJoinToken(tokenMatch ? tokenMatch[1] : value);
-                        }}
+                        onChange={handleJoinTokenChange}
                         disabled={joinLoading} 
                         placeholder="Paste invite link or token"
                         className="form-input"
                       />
                     </div>
                     <div className="form-actions">
-                      <button type="button" onClick={() => { setShowJoinModal(false); setJoinToken(''); setError(''); }} disabled={joinLoading} className="cancel-button">
+                      <button 
+                        type="button" 
+                        onClick={closeJoinGroupModal} 
+                        disabled={joinLoading} 
+                        className="cancel-button"
+                      >
                         Cancel
                       </button>
-                      <button type="submit" disabled={joinLoading || !joinToken.trim()} className="submit-button">
+                      <button 
+                        type="submit" 
+                        disabled={joinLoading || !joinToken.trim()} 
+                        className="submit-button"
+                      >
                         {joinLoading ? 'Joining...' : 'Join Group'}
                       </button>
                     </div>
@@ -629,7 +1130,9 @@ const GroupChatDashboard = () => {
             )}
 
             {groupsLoading ? (
-              <div className="loading-state"><p>Loading groups...</p></div>
+              <div className="loading-state">
+                <p>Loading groups...</p>
+              </div>
             ) : groups.length === 0 ? (
               <div className="empty-state">
                 <Users className="empty-icon"/>
@@ -644,57 +1147,65 @@ const GroupChatDashboard = () => {
               <p>Loading members...</p>
             ) : (
               <div className="users-list">
-                {members.map((m) => {
-                  const info = getMemberInfo(m.id);
-                  const isMe = m.id === user?.id;
+                {members.map((member) => {
+                  const memberInfo = getMemberInfo(member.id);
+                  const isMe = member.id === user?.id;
                   const isAdmin = isCurrentUserAdmin();
                   const canManage = isAdmin && !isMe;
                   
                   return (
-                    <div key={m.id} className={`user-item ${isMe ? 'user-item-me' : ''}`}>
+                    <div key={member.id} className={`user-item ${isMe ? 'user-item-me' : ''}`}>
                       <div className="user-avatar-container">
-                        <div className="user-initial">{m.fullName?.charAt(0).toUpperCase() || 'U'}</div>
-                        {info.online && <div className="online-indicator"></div>}
+                        <div className="user-initial">
+                          {member.fullName?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                        {memberInfo.online && <div className="online-indicator"></div>}
                       </div>
                       <div className="user-details">
-                        <p className="user-name">{m.fullName} {isMe && '(You)'}</p>
+                        <p className="user-name">
+                          {member.fullName} {isMe && '(You)'}
+                        </p>
                         <div className="user-badges">
-                          <span className={`role-badge ${m.role === 'admin' ? 'role-admin' : 'role-member'}`}>{m.role || 'member'}</span>
-                          <span className={`status-badge ${info.online ? 'status-online' : 'status-offline'}`}>{info.online ? 'online' : 'offline'}</span>
+                          <span className={`role-badge ${member.role === 'admin' ? 'role-admin' : 'role-member'}`}>
+                            {member.role || 'member'}
+                          </span>
+                          <span className={`status-badge ${memberInfo.online ? 'status-online' : 'status-offline'}`}>
+                            {memberInfo.online ? 'online' : 'offline'}
+                          </span>
                         </div>
                       </div>
                       {canManage && (
                         <div className="member-actions">
                           <button 
-                            onClick={() => toggleMemberActions(m.id)}
+                            onClick={() => toggleMemberActions(member.id)}
                             className="member-actions-button"
-                            disabled={memberActionLoading[m.id]}
+                            disabled={memberActionLoading[member.id]}
                           >
                             •••
                           </button>
-                          {showMemberActions[m.id] && (
+                          {showMemberActions[member.id] && (
                             <div className="member-actions-dropdown">
-                              {m.role === 'member' ? (
+                              {member.role === 'member' ? (
                                 <button 
-                                  onClick={() => updateMemberRole(m.id, 'admin')}
+                                  onClick={() => updateMemberRole(member.id, 'admin')}
                                   className="action-item promote"
-                                  disabled={memberActionLoading[m.id]}
+                                  disabled={memberActionLoading[member.id]}
                                 >
                                   <Shield size={14} /> Promote to Admin
                                 </button>
                               ) : (
                                 <button 
-                                  onClick={() => updateMemberRole(m.id, 'member')}
+                                  onClick={() => updateMemberRole(member.id, 'member')}
                                   className="action-item demote"
-                                  disabled={memberActionLoading[m.id]}
+                                  disabled={memberActionLoading[member.id]}
                                 >
                                   <Shield size={14} /> Remove Admin
                                 </button>
                               )}
                               <button 
-                                onClick={() => removeMember(m.id)}
+                                onClick={() => removeMember(member.id)}
                                 className="action-item remove"
-                                disabled={memberActionLoading[m.id]}
+                                disabled={memberActionLoading[member.id]}
                               >
                                 <UserMinus size={14} /> Remove Member
                               </button>
@@ -725,19 +1236,25 @@ const GroupChatDashboard = () => {
               </div>
             ) : (
               <div className="messages-list">
-                {messages.map((msg) => {
-                  const info = getMemberInfo(msg.userId);
+                {messages.map((message) => {
+                  const memberInfo = getMemberInfo(message.userId);
                   return (
-                    <div key={msg.id} className={`message ${msg.isMe ? 'my-message' : 'other-message'}`}>
+                    <div key={message.id} className={`message ${message.isMe ? 'my-message' : 'other-message'}`}>
                       <div className="message-avatar">
                         <div className="message-initial">
-                          {msg.sender?.fullName?.charAt(0).toUpperCase() || info.name.charAt(0).toUpperCase() || 'U'}
+                          {message.sender?.fullName?.charAt(0).toUpperCase() || memberInfo.name.charAt(0).toUpperCase() || 'U'}
                         </div>
                       </div>
                       <div className="message-content">
-                        {!msg.isMe && <div className="message-sender">{msg.sender?.fullName || info.name}</div>}
-                        <div className="message-bubble"><p>{msg.text}</p></div>
-                        <div className="message-time">{formatTime(msg.time)}</div>
+                        {!message.isMe && (
+                          <div className="message-sender">
+                            {message.sender?.fullName || memberInfo.name}
+                          </div>
+                        )}
+                        <div className="message-bubble">
+                          <p>{message.text}</p>
+                        </div>
+                        <div className="message-time">{formatTime(message.time)}</div>
                       </div>
                     </div>
                   );
@@ -763,7 +1280,11 @@ const GroupChatDashboard = () => {
               disabled={loading || !currentGroupId || groups.length === 0}
               className="message-input"
             />
-            <button onClick={sendMessage} disabled={loading || !newMessage.trim() || !currentGroupId || groups.length === 0} className="send-button">
+            <button 
+              onClick={sendMessage} 
+              disabled={loading || !newMessage.trim() || !currentGroupId || groups.length === 0} 
+              className="send-button"
+            >
               <Send className="send-icon" />
               <span>{loading ? 'Sending...' : 'Send'}</span>
             </button>
